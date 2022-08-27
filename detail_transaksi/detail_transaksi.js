@@ -27,6 +27,30 @@ router.get('/all/:id_detail',async(req,res)=>{
     }
 });
 
+router.get('/semua',async(req,res)=>{
+    try {
+        const result = await database.select("*").from('v_detail_transaksi');
+        if (result.length >0 ) {
+            return res.status(200).json({
+                status : 1,
+                message : "berhasil",
+                result : result,
+            })
+        } else {
+            return res.status(400).json({
+                status :0,
+                message :"data tidak di temukan"
+            })
+        }
+        
+    } catch (error) {
+        return res.status(500).json({
+        status : 0,
+        message : error.message
+         });
+    }
+});
+
 router.post('/simpan',async(req,res)=>{
     const data = req.body;
     try {
@@ -51,51 +75,4 @@ router.post('/simpan',async(req,res)=>{
     }
 });
 
-// router.post('/tambah', async(req,res)=>{
-//     try {
-//        await database("transaksi").create(data);      
-//     } catch (error) {
-        
-//     }
-// });
-
-// router.post('/tambah', async(req,res)=>{
-//     product.forEach(element => {
-//         data
-//     });
-//     try {
-//        await database("transaksi").create(data);      
-//     } catch (error) {
-        
-//     }
-// });
-
-
 module.exports = router
-
-
-
-// router.post('/tambah',async(req,res)=>{
-//     try {
-//         const cek = await database("detail_transaksi").where('id_menu', data.id_menu).andwhere('id_diskon').first();
-//         if (cek) {
-//             var jumlah = parseInt(cek.jumlah) + parseInt(data.jumlah)
-//             await database("detail_transaksi").update('jumlah',jumlah).where('id_menu', data.id_menu).andwhere('id_diskon');
-//             return res.status(200).json({
-//                 status : 1,
-//                 message : "berhasil",
-//                 result : result,
-//             })
-//         } else {
-//             return res.status(400).json({
-//                 status :0,
-//                 message :"data tidak di temukan"
-//             })
-//         }
-//     } catch (error) {
-//         return res.status(500).json({
-//             status : 0,
-//             message : error.message
-//              });
-//     }
-// });
