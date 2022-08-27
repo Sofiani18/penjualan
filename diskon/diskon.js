@@ -50,6 +50,7 @@ router.get('/all/:id_diskon',async(req,res)=>{
     }
 });
 
+
 router.post('/simpan',async(req,res)=>{
     const data = req.body;
     try {
@@ -74,38 +75,12 @@ router.post('/simpan',async(req,res)=>{
     }
 });
 
-router.post('/diskon',async (req, res)=>{
-    let {diskon, harga_asli}= req.body;
-    var discountuse = diskon/100;
-    var total = harga_asli-(harga_asli * discountuse);
-    try {
-        const result  = await database("diskon").insert({
-        diskon_harga: discountuse,
-        harga_asli: harga_asli,
-        jumlah_diskon : total 
-    });
-                if (!result) {
-                     throw new error;
-                }
-                    return res.status(200).json({
-                    "success":[{                        
-                        message : "berhasil",
-                        result : result
-                    }]
-                })
-            } catch (error) {
-                return res.status(500).json({
-                status : 0,
-                message : error.message
-                 });
-            }
-});
-
-
 router.put('/edit/:id_diskon',async(req,res)=>{
+    const data = req.body;
     try {
         const result = await database.select("*").from("diskon").where('id_diskon',req.params.id_diskon);
         if (result.length >0 ) {
+            await database("diskon").update(data).where('id_diskon',req.params.id_diskon);
             return res.status(200).json({
                 status : 1,
                 message : "berhasil",
@@ -125,27 +100,25 @@ router.put('/edit/:id_diskon',async(req,res)=>{
     }
 });
 
-router.delete('/delete/:id_diskon',async(req,res)=>{
+router.delete('/hapus/:id_diskon',async(req,res)=>{
     try {
-        const result = await database.select("*").from("diskon").where('id_diskon',req.params.id_diskon);
-        if (result.length >0 ) {
+        const update = await database("diskon").update('status','T').where('id_diskon', req.params.id_diskon);
+        if (update){
             return res.status(200).json({
                 status : 1,
-                message : "berhasil",
-                result : result,
-            })
+                message : "berhasil", 
+            })            
         } else {
             return res.status(400).json({
                 status :0,
-                message :"data tidak di temukan"
-            })
-        }
-        
+                message :"Gagal"
+            });
+        }        
     } catch (error) {
         return res.status(500).json({
-        status : 0,
-        message : error.message
-         });
+            status : 0,
+            message : error.message
+             }); 
     }
 });
 
