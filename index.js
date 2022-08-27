@@ -3,11 +3,13 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const app = express();
 const path = require("path");
+const cookieParser = require('cookie-parser');
 
 const PORT = process.env.PORT || 8082;
 
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
 app.use(bodyParser.urlencoded({
     extended : true
 }));
