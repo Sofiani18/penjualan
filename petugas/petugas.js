@@ -2,10 +2,72 @@ const express =require('express');
 const router = express.Router();
 const database = require('../config/database');
 const bcrypt = require('bcrypt');
+const jwt = require("jsonwebtoken");
+const verifikasi_token = require('../middleware/verifikasi_token')
 
-router.get('/all',async(req,res)=> {
+router.post('/login', async(req,res)=>{
+    const data= req.body;
+    try {
+        const login = await database("petugas").where('nama_petugas', data.nama_petugas).first();
+        if (login) {
+            if (bcrypt.compareSync(data.password, login.password)) {
+                const access_token = jwt.sign({id_petugas : login.id_petugas}, "YOK BISA YOK S.KOM", {expiresIn :'20h'});
+                const refresh_token = jwt.sign({id_petugas : login.id_petugas}, "YOK BISA YOK S.KOM", {expiresIn :'24h'}); 
+                await database("petugas").update('refresh_token', refresh_token).where('id_petugas', login.id_petugas);
+                res.cookie('refresh_token', refresh_token, {
+                    httpOnly : true
+                })               
+                return res.status(200).json({
+                        status : 1,
+                        message : `Selamat datang ${data.nama_petugas}`,
+                        token : access_token
+                    })
+                }else {
+                    return res.status(400).json({
+                        status :0,
+                        message :"Password Salah"
+                    })
+                }    
+            }else {
+                return res.status(400).json({
+                    status :0,
+                    message :"Username Salah"
+                })    
+            } 
+    } catch (error) {
+        return res.status(500).json({
+        status : 0,
+        message : error.message
+         });
+    }
+});
+
+router.get('/all',verifikasi_token,async(req,res)=> {
     try {
         const result = await database.select("*").from("petugas");
+        if (result.length > 0 ) {
+            return res.status(200).json({
+                status : 1,
+                message : "berhasil",
+                result : result,
+            })
+        } else {
+            return res.status(400).json({
+                status :0,
+                message :"data tidak ditemukan"
+            })
+        }
+    } catch (error) {
+        return res.status(500).json({
+        status : 0,
+        message : error.message
+         });
+    }
+});
+
+router.get('/all/:id_petugas',async(req,res)=> {
+    try {
+        const result = await database("petugas").where('id_petugas', req.params.id_petugas);
         if (result.length > 0 ) {
             return res.status(200).json({
                 status : 1,
@@ -63,16 +125,12 @@ router.post('/tambah',async(req,res)=>{
     }
 });
 
-// edit data dan edit password
 router.put('/edit/:id_petugas', async(req,res)=>{
 
     try {
         const result = await database("petugas").where('id_petugas', req.params.id_petugas).first();
         if (result) {
             const oldPassword = req.body.password_lama
-            // Cek inputan password lama di form apakah sama dengan password lama di database
-            // oldPassword = password di form, 
-            // result.password = password di database
             if (bcrypt.compareSync(oldPassword, result.password)) {
                 if (req.body.password_1 == req.body.password_2) {
                     const newPassword = bcrypt.hashSync(req.body.password_1,14)
@@ -130,5 +188,49 @@ router.delete('/hapus/:id_petugas',async(req,res)=> {
     }
 });
 
+router.get('/refresh_token', async(req,res)=>{
+    try {
+        const token = req.cookies.refresh_token;
+        if(!token){
+            return res.status(400).json({
+            status :0,
+            message :"Tdak Ada token"
+        })
+    }
+        const cek_token = await database("petugas").where('refresh_token', token).first();
+        if(cek_token){
+            jwt.verify(token, "YOK BISA YOK S.KOM", async (err, decoded)=>{
+                if(err){
+                    return res.status(400).json({
+                    status :0,
+                    message :"Token Invalid",
+                    error : err.message
+                });
+            }
+                    const access_token = jwt.sign({id_petugas : decoded.id_petugas}, "YOK BISA YOK S.KOM", {expiresIn :'20h'});
+                    const refresh_token = jwt.sign({id_petugas : decoded.id_petugas}, "YOK BISA YOK S.KOM", {expiresIn :'24h'}); 
+                    await database("petugas").update('refresh_token', refresh_token).where('id_petugas', decoded.id_petugas);
+                    res.cookie('refresh_token', refresh_token, {
+                        httpOnly : true
+                    });               
+                    return res.status(200).json({
+                            status : 1,
+                            message : "Token Baru",
+                            token : access_token
+                        });
+        });
+    }else{
+        return res.status(400).json({
+            status :0,
+            message :"Token Tidak Ditemukan"
+        });
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status : 0,
+            message : error.message
+             }); 
+    }
+})
 
 module.exports = router;
